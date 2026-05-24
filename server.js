@@ -87,14 +87,17 @@ app.get('/busy', async (req, res) => {
 
     const busyPeriods = response.data.calendars.primary.busy || [];
 
-    // המר לרשימת שעות תפוסות (HH:MM)
-    const busyTimes = busyPeriods.map(period => {
+    // החזר טווחים מלאים — התחלה וסיום — ללא פרטי הפגישה
+    const busyRanges = busyPeriods.map(period => {
       const start = new Date(period.start);
-      return `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`;
+      const end = new Date(period.end);
+      return {
+        start: `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`,
+        end: `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`
+      };
     });
 
-    // החזר רק שעות — ללא שמות, פרטים או נושאי הפגישות
-    res.json({ date, busy: busyTimes });
+    res.json({ date, busy: busyRanges });
 
   } catch (err) {
     console.error('Calendar error:', err.message);
