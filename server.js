@@ -87,14 +87,18 @@ app.get('/busy', async (req, res) => {
 
     const busyPeriods = response.data.calendars.primary.busy || [];
 
-    // החזר טווחים מלאים — התחלה וסיום — ללא פרטי הפגישה
+    // המר לטווחים בשעון ישראל
     const busyRanges = busyPeriods.map(period => {
       const start = new Date(period.start);
       const end = new Date(period.end);
-      return {
-        start: `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`,
-        end: `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`
+
+      const toIsrael = (d) => {
+        const israelStr = d.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+        const israelDate = new Date(israelStr);
+        return `${String(israelDate.getHours()).padStart(2,'0')}:${String(israelDate.getMinutes()).padStart(2,'0')}`;
       };
+
+      return { start: toIsrael(start), end: toIsrael(end) };
     });
 
     res.json({ date, busy: busyRanges });
