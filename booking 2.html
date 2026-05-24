@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>קביעת פגישה</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f9f5;
+      --surface: #ffffff;
+      --surface2: #f0f4ee;
+      --accent: #3a7d44;
+      --accent2: #5aaa67;
+      --text: #1a2e1d;
+      --muted: #6b8c70;
+      --border: #d4e4d6;
+      --radius: 16px;
+      --success: #3a7d44;
+    }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 16px 60px;
+      overflow-x: hidden;
+    }
+
+    /* background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.10;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 500px; height: 500px;
+      background: #3a7d44;
+      top: -200px; left: -150px;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      background: #5aaa67;
+      bottom: -100px; right: -100px;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s ease both;
+    }
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      color: #1a2e1d;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 300;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.6s ease both;
+      box-shadow: 0 2px 16px rgba(58,125,68,0.07);
+    }
+    .card:nth-child(2) { animation-delay: 0.1s; }
+    .card:nth-child(3) { animation-delay: 0.2s; }
+    .card:nth-child(4) { animation-delay: 0.3s; }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+
+    /* Meeting type selector */
+    .meeting-types {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 0;
+    }
+    .meeting-type {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      user-select: none;
+    }
+    .meeting-type:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(79,142,247,0.12);
+    }
+    .meeting-type.selected {
+      border-color: var(--accent);
+      background: rgba(79,142,247,0.1);
+      box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+    }
+    .meeting-type .icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .meeting-type .label { font-size: 0.95rem; font-weight: 500; }
+    .meeting-type .desc { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+    /* Calendar */
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .month-label { font-size: 1.05rem; font-weight: 600; }
+    .nav-btn {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 8px;
+    }
+    .weekday {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--muted);
+      padding: 4px 0;
+      letter-spacing: 0.5px;
+    }
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .day {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1.5px solid transparent;
+    }
+    .day:hover:not(.empty):not(.past) {
+      background: var(--surface2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .day.past { color: var(--border); cursor: default; }
+    .day.today { font-weight: 700; color: var(--accent2); }
+    .day.selected {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(79,142,247,0.4);
+    }
+    .day.empty { cursor: default; }
+    .day.has-slots::after {
+      content: '';
+      width: 4px; height: 4px;
+      background: var(--success);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 4px;
+    }
+    .day { position: relative; }
+
+    /* Time slots */
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .slot {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .slot:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .slot.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(79,142,247,0.35);
+    }
+    .slot.taken {
+      opacity: 0.3;
+      cursor: not-allowed;
+      text-decoration: line-through;
+    }
+    .duration-tag {
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+      font-weight: 300;
+    }
+    .slot.selected .duration-tag { color: rgba(255,255,255,0.7); }
+
+    /* Form */
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+    input, textarea, select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+      direction: rtl;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    select option { background: var(--surface2); }
+
+    /* Submit button */
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      color: #fff;
+      font-family: 'Heebo', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 24px rgba(79,142,247,0.3);
+    }
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(79,142,247,0.45);
+    }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Summary bar */
+    .summary-bar {
+      background: linear-gradient(135deg, rgba(58,125,68,0.10), rgba(90,170,103,0.10));
+      border: 1px solid rgba(58,125,68,0.25);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      font-size: 0.88rem;
+      animation: fadeUp 0.4s ease both;
+    }
+    .summary-bar .dot { color: var(--accent); font-size: 1.2rem; }
+    .summary-bar strong { color: var(--accent); }
+
+    /* Success screen */
+    .success-screen {
+      text-align: center;
+      padding: 48px 32px;
+      display: none;
+    }
+    .success-screen.show { display: block; }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: rgba(52,211,153,0.15);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin-bottom: 24px;
+      border: 2px solid var(--success);
+    }
+    .success-screen h2 { font-size: 1.6rem; margin-bottom: 12px; }
+    .success-screen p { color: var(--muted); line-height: 1.7; }
+    .success-details {
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+      text-align: right;
+      font-size: 0.92rem;
+      line-height: 2;
+    }
+    .success-details strong { color: var(--accent); }
+
+    /* Info note */
+    .note {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(58,125,68,0.07);
+      border: 1px solid rgba(58,125,68,0.2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+    .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* Step indicator */
+    .steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all 0.3s ease;
+    }
+    .step-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+    .step-dot.done { background: var(--success); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-disabled { opacity: 0.4; pointer-events: none; }
+
+    .placeholder-msg {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 24px 0;
+    }
+    .placeholder-msg .big { font-size: 2rem; margin-bottom: 8px; }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 40px;
+      animation: fadeUp 0.6s ease 0.4s both;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <img src="data:image/jpeg;base64,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" 
+         alt="דגן שימרן" style="height:90px; object-fit:contain; margin-bottom:16px;" />
+    <h1>קביעת פגישה</h1>
+    <p class="subtitle">בחר זמן שמתאים לך ואאשר בהקדם</p>
+  </header>
+
+  <div class="steps">
+    <div class="step-dot active" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+  </div>
+
+  <!-- Main content -->
+  <div id="booking-flow">
+
+    <!-- Step 1: Meeting type -->
+    <div class="card" id="card-type">
+      <div class="card-title">סוג הפגישה</div>
+      <div class="meeting-types">
+        <div class="meeting-type selected" data-type="video" onclick="selectType(this,'video')">
+          <div class="icon">🎥</div>
+          <div class="label">ווידאו</div>
+          <div class="desc">Zoom / Google Meet</div>
+        </div>
+        <div class="meeting-type" data-type="physical" onclick="selectType(this,'physical')">
+          <div class="icon">🤝</div>
+          <div class="label">פיזית</div>
+          <div class="desc">פגישה פנים אל פנים</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Calendar -->
+    <div class="card" id="card-calendar">
+      <div class="card-title">בחר תאריך</div>
+      <div class="calendar-header">
+        <button class="nav-btn" onclick="changeMonth(-1)">›</button>
+        <span class="month-label" id="month-label"></span>
+        <button class="nav-btn" onclick="changeMonth(1)">‹</button>
+      </div>
+      <div class="weekdays">
+        <div class="weekday">א׳</div>
+        <div class="weekday">ב׳</div>
+        <div class="weekday">ג׳</div>
+        <div class="weekday">ד׳</div>
+        <div class="weekday">ה׳</div>
+        <div class="weekday">ו׳</div>
+        <div class="weekday">ש׳</div>
+      </div>
+      <div class="days-grid" id="days-grid"></div>
+    </div>
+
+    <!-- Step 3: Time slots -->
+    <div class="card" id="card-slots">
+      <div class="card-title">בחר שעה</div>
+      <div id="slots-container">
+        <div class="placeholder-msg">
+          <div class="big">👆</div>
+          בחר תאריך כדי לראות שעות פנויות
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-bar" id="summary-bar" style="display:none">
+      <span class="dot">●</span>
+      <span id="summary-text"></span>
+    </div>
+
+    <!-- Step 4: Details form -->
+    <div class="card" id="card-form">
+      <div class="card-title">פרטי הפגישה</div>
+      <div class="form-group">
+        <label>שם מלא *</label>
+        <input type="text" id="name" placeholder="ישראל ישראלי" />
+      </div>
+      <div class="form-group">
+        <label>אימייל *</label>
+        <input type="email" id="email" placeholder="your@email.com" dir="ltr" />
+      </div>
+      <div class="form-group">
+        <label>טלפון</label>
+        <input type="tel" id="phone" placeholder="050-0000000" dir="ltr" />
+      </div>
+      <div class="form-group">
+        <label>נושא הפגישה</label>
+        <input type="text" id="topic" placeholder="במה תרצה לדון?" />
+      </div>
+      <div class="form-group">
+        <label>הערות נוספות</label>
+        <textarea id="notes" placeholder="כל מידע רלוונטי שיעזור לי להתכונן..."></textarea>
+      </div>
+
+      <button class="btn-submit" id="submit-btn" onclick="submitBooking()">
+        אשר קביעת פגישה →
+      </button>
+
+      <div class="note">
+        <span class="note-icon">🔒</span>
+        <span>לאחר האישור תקבל הזמנה ליומן Google שלך עם כל פרטי הפגישה. הפגישה תיכנס ליומן שלי אוטומטית.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Success screen -->
+  <div class="card success-screen" id="success-screen">
+    <div class="success-icon">✓</div>
+    <h2>הפגישה נקבעה!</h2>
+    <p>שלחתי לך הזמנה לאימייל עם כל הפרטים.</p>
+    <div class="success-details" id="success-details"></div>
+    <p style="color:var(--muted); font-size:0.85rem">לשינוי או ביטול הפגישה — ענה על האימייל שקיבלת.</p>
+  </div>
+
+  <footer>© 2026 · מופעל על ידי Google Calendar</footer>
+
+  <!-- Admin button (מוסתר בתחתית - רק בשבילך) -->
+  <div style="text-align:center; margin-top:16px;">
+    <button onclick="openAdmin()" style="background:none; border:none; color:var(--border); font-size:0.72rem; cursor:pointer; font-family:'Heebo',sans-serif; opacity:0.5;">
+      ⚙️ הגדרות ניהול
+    </button>
+  </div>
+</div>
+
+<!-- Admin Overlay -->
+<div id="admin-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#fff; border-radius:20px; padding:28px 28px 24px; width:100%; max-width:560px; max-height:92vh; overflow-y:auto; font-family:'Heebo',sans-serif; direction:rtl;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;">
+      <h2 style="font-size:1.15rem; color:#1a2e1d; font-weight:700;">⚙️ הגדרות שעות עבודה</h2>
+      <button onclick="closeAdmin()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#6b8c70; line-height:1;">✕</button>
+    </div>
+
+    <!-- שעות לפי יום -->
+    <div style="margin-bottom:8px;">
+      <div style="font-size:0.78rem; color:#6b8c70; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:14px;">שעות עבודה לפי יום</div>
+      <div id="admin-days-list"></div>
+    </div>
+
+    <!-- הפסקת צהריים -->
+    <div style="margin-bottom:24px; background:#f0f4ee; border-radius:12px; padding:16px;">
+      <div style="font-size:0.78rem; color:#6b8c70; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">הפסקת צהריים (גלובלית, אופציונלי)</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#6b8c70; margin-bottom:5px;">מ־</label>
+          <input type="time" id="admin-lunch-start" style="width:100%; padding:9px 11px; border:1.5px solid #d4e4d6; border-radius:9px; font-family:'Heebo',sans-serif; font-size:0.92rem; outline:none; background:#fff;" />
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; color:#6b8c70; margin-bottom:5px;">עד</label>
+          <input type="time" id="admin-lunch-end" style="width:100%; padding:9px 11px; border:1.5px solid #d4e4d6; border-radius:9px; font-family:'Heebo',sans-serif; font-size:0.92rem; outline:none; background:#fff;" />
+        </div>
+      </div>
+    </div>
+
+    <button onclick="saveAdmin()" style="width:100%; background:linear-gradient(135deg,#3a7d44,#5aaa67); border:none; border-radius:12px; padding:14px; color:#fff; font-family:'Heebo',sans-serif; font-size:1rem; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(58,125,68,0.3);">
+      שמור הגדרות ✓
+    </button>
+  </div>
+</div>
+
+<style>
+  .admin-day-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f4ee;
+  }
+  .admin-day-row:last-child { border-bottom: none; }
+  .day-active-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a2e1d;
+    cursor: pointer;
+    user-select: none;
+    min-width: 110px;
+  }
+  .toggle-switch {
+    width: 38px; height: 22px;
+    background: #d4e4d6;
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; right: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .toggle-switch.on { background: #3a7d44; }
+  .toggle-switch.on::after { transform: translateX(-16px); }
+  .day-hours-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    transition: opacity 0.2s;
+  }
+  .day-hours-inputs.disabled { opacity: 0.3; pointer-events: none; }
+  .day-hours-inputs input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid #d4e4d6;
+    border-radius: 8px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.88rem;
+    outline: none;
+    background: #f7f9f5;
+  }
+  .day-hours-inputs input:focus { border-color: #3a7d44; background: #fff; }
+</style>
+
+<script>
+  // ─── ADMIN SETTINGS (ניתן לשינוי) ────────────────────────────────────────
+  // ימים פעילים: 0=ראשון, 1=שני, 2=שלישי, 3=רביעי, 4=חמישי, 5=שישי, 6=שבת
+  let workDays = [0, 1, 2, 3, 4]; // ראשון עד חמישי
+
+  // שעות עבודה לפי יום (אפשר להגדיר שונה לכל יום)
+  let workHours = {
+    default: { start: "09:00", end: "16:00" },
+    1: { start: "13:30", end: "17:30" }, // שני
+  };
+
+  // הפסקת צהריים (שעות שיחסמו אוטומטית)
+  let lunchBreak = { start: "13:00", end: "14:00" };
+
+  // ימים חסומים ידנית (חופשות וכו')
+  let blockedDates = []; // לדוגמה: ["2025-12-25"]
+
+  // משך פגישה בדקות
+  const MEETING_DURATION = 55;
+
+  // כמה שבועות קדימה ניתן לקבוע
+  const WEEKS_AHEAD = 3;
+
+  // ─── TAKEN SLOTS (בפרודקשן - מגיע מ-Google Calendar API) ────────────────
+  // מציג רק "תפוס" - ללא פרטי הלקוח
+  const takenSlots = {
+    // "2025-06-10": ["10:00", "14:00"]
+  };
+
+  // ─── STATE ───────────────────────────────────────────────────────────────
+  let selectedType = 'video';
+  let selectedDate = null;
+  let selectedSlot = null;
+  let currentDate = new Date();
+  let viewMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  let adminMode = false;
+
+  const HEBREW_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  const DAY_NAMES = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+
+  // ─── HELPERS ─────────────────────────────────────────────────────────────
+  function formatDate(date) {
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  }
+
+  function addMinutes(time, mins) {
+    const [h, m] = time.split(':').map(Number);
+    const total = h * 60 + m + mins;
+    return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+  }
+
+  function timeToMins(time) {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  // ─── MAX DATE (3 שבועות קדימה) ───────────────────────────────────────────
+  function getMaxDate() {
+    const max = new Date();
+    max.setDate(max.getDate() + WEEKS_AHEAD * 7);
+    max.setHours(0,0,0,0);
+    return max;
+  }
+
+  // ─── GENERATE SLOTS FOR A DATE ───────────────────────────────────────────
+  function generateSlots(dateStr) {
+    const date = new Date(dateStr + 'T00:00:00');
+    const dayOfWeek = date.getDay();
+    const hours = workHours[dayOfWeek] || workHours.default;
+    const slots = [];
+
+    let current = hours.start;
+    const endMins = timeToMins(hours.end);
+    const lunchStart = lunchBreak ? timeToMins(lunchBreak.start) : -1;
+    const lunchEnd = lunchBreak ? timeToMins(lunchBreak.end) : -1;
+
+    while (timeToMins(current) + MEETING_DURATION <= endMins) {
+      const slotMins = timeToMins(current);
+      // דלג על הפסקת צהריים
+      const overlapsLunch = lunchBreak &&
+        slotMins < lunchEnd && slotMins + MEETING_DURATION > lunchStart;
+      if (!overlapsLunch) {
+        slots.push(current);
+      }
+      current = addMinutes(current, MEETING_DURATION + 5); // 55 דקות פגישה + 5 דקות הפסקה
+    }
+    return slots;
+  }
+
+  // ─── IS DATE AVAILABLE ───────────────────────────────────────────────────
+  function isDateAvailable(date) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const maxDate = getMaxDate();
+    if (date < today || date > maxDate) return false;
+    if (!workDays.includes(date.getDay())) return false;
+    const dateStr = formatDate(date);
+    if (blockedDates.includes(dateStr)) return false;
+    const slots = generateSlots(dateStr);
+    const taken = takenSlots[dateStr] || [];
+    return slots.some(s => !taken.includes(s));
+  }
+
+  // ─── MEETING TYPE ─────────────────────────────────────────────────────────
+  function selectType(el, type) {
+    document.querySelectorAll('.meeting-type').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedType = type;
+  }
+
+  // ─── CALENDAR ─────────────────────────────────────────────────────────────
+  function renderCalendar() {
+    const grid = document.getElementById('days-grid');
+    const label = document.getElementById('month-label');
+    grid.innerHTML = '';
+
+    label.textContent = `${HEBREW_MONTHS[viewMonth.getMonth()]} ${viewMonth.getFullYear()}`;
+
+    const firstDay = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay();
+    const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const maxDate = getMaxDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'day empty';
+      grid.appendChild(empty);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), d);
+      const dateStr = formatDate(date);
+      const available = isDateAvailable(date);
+      const isToday = date.getTime() === today.getTime();
+      const isSelected = selectedDate === dateStr;
+      const isBeyondMax = date > maxDate;
+      const isPast = date < today;
+
+      const el = document.createElement('div');
+      el.className = 'day';
+      if (!available) el.classList.add('past');
+      if (isToday && available) el.classList.add('today');
+      if (isSelected) el.classList.add('selected');
+      if (available) el.classList.add('has-slots');
+      el.textContent = d;
+
+      if (available) {
+        el.addEventListener('click', () => selectDay(dateStr, el));
+      }
+      grid.appendChild(el);
+    }
+
+    // עדכן כפתורי ניווט
+    const prevBtn = document.querySelector('.nav-btn:last-child');
+    const nextBtn = document.querySelector('.nav-btn:first-child');
+    // חסום חודש קודם אם הוא לפני היום
+    const prevMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
+    const nowMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    prevBtn.style.opacity = prevMonth < nowMonth ? '0.3' : '1';
+    prevBtn.style.pointerEvents = prevMonth < nowMonth ? 'none' : 'auto';
+  }
+
+  function changeMonth(dir) {
+    const now = new Date();
+    const minMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const proposed = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + dir, 1);
+    if (proposed < minMonth) return;
+    viewMonth = proposed;
+    renderCalendar();
+  }
+
+  function selectDay(dateStr, el) {
+    selectedDate = dateStr;
+    selectedSlot = null;
+    document.querySelectorAll('.day.selected').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    renderSlots();
+    updateDots(2);
+  }
+
+  // ─── SLOTS ────────────────────────────────────────────────────────────────
+  function renderSlots() {
+    const container = document.getElementById('slots-container');
+    container.innerHTML = '';
+
+    const slots = generateSlots(selectedDate);
+    const taken = takenSlots[selectedDate] || [];
+
+    if (slots.length === 0) {
+      container.innerHTML = '<div class="placeholder-msg"><div class="big">😔</div>אין שעות פנויות ביום זה</div>';
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'slots-grid';
+
+    slots.forEach(time => {
+      const isTaken = taken.includes(time);
+      const el = document.createElement('div');
+      // לקוח רואה רק "פנוי" או "תפוס" - ללא פרטים
+      el.className = 'slot' + (isTaken ? ' taken' : '');
+      el.innerHTML = isTaken
+        ? `${time}<span class="duration-tag">תפוס</span>`
+        : `${time}<span class="duration-tag">55 דקות</span>`;
+      if (!isTaken) {
+        el.addEventListener('click', () => selectSlot(time, el));
+      }
+      grid.appendChild(el);
+    });
+
+    container.appendChild(grid);
+  }
+
+  function selectSlot(time, el) {
+    selectedSlot = time;
+    document.querySelectorAll('.slot.selected').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    updateSummary();
+    updateDots(3);
+  }
+
+  // ─── SUMMARY ──────────────────────────────────────────────────────────────
+  function updateSummary() {
+    if (!selectedDate || !selectedSlot) return;
+    const bar = document.getElementById('summary-bar');
+    const text = document.getElementById('summary-text');
+    const typeLabel = selectedType === 'video' ? '🎥 ווידאו' : '🤝 פיזית';
+    const dateObj = new Date(selectedDate + 'T00:00:00');
+    const dateHeb = dateObj.toLocaleDateString('he-IL', { weekday:'long', day:'numeric', month:'long' });
+    text.innerHTML = `<strong>${typeLabel}</strong> · ${dateHeb} · <strong>${selectedSlot}</strong> (55 דקות)`;
+    bar.style.display = 'flex';
+  }
+
+  // ─── DOTS ─────────────────────────────────────────────────────────────────
+  function updateDots(active) {
+    for (let i = 1; i <= 3; i++) {
+      const dot = document.getElementById('dot' + i);
+      dot.classList.remove('active', 'done');
+      if (i < active) dot.classList.add('done');
+      else if (i === active) dot.classList.add('active');
+    }
+  }
+
+  // ─── SUBMIT ───────────────────────────────────────────────────────────────
+  function submitBooking() {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    if (!name || !email) { alert('אנא מלא שם ואימייל.'); return; }
+    if (!selectedDate || !selectedSlot) { alert('אנא בחר תאריך ושעה.'); return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'שולח...';
+
+    setTimeout(() => { showSuccess(name, email); }, 1400);
+  }
+
+  function showSuccess(name, email) {
+    document.getElementById('booking-flow').style.display = 'none';
+    document.getElementById('summary-bar').style.display = 'none';
+
+    const dateObj = new Date(selectedDate + 'T00:00:00');
+    const dateHeb = dateObj.toLocaleDateString('he-IL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    const typeLabel = selectedType === 'video' ? 'פגישת ווידאו (Zoom / Google Meet)' : 'פגישה פיזית';
+
+    document.getElementById('success-details').innerHTML = `
+      <div><strong>שם:</strong> ${name}</div>
+      <div><strong>אימייל:</strong> ${email}</div>
+      <div><strong>סוג פגישה:</strong> ${typeLabel}</div>
+      <div><strong>תאריך:</strong> ${dateHeb}</div>
+      <div><strong>שעה:</strong> ${selectedSlot} (55 דקות)</div>
+    `;
+
+    const screen = document.getElementById('success-screen');
+    screen.classList.add('show');
+    screen.style.animation = 'fadeUp 0.5s ease both';
+    document.querySelector('.steps').style.display = 'none';
+  }
+
+  // ─── ADMIN PANEL ──────────────────────────────────────────────────────────
+  const ALL_DAYS = [
+    { d: 0, name: 'ראשון' }, { d: 1, name: 'שני' }, { d: 2, name: 'שלישי' },
+    { d: 3, name: 'רביעי' }, { d: 4, name: 'חמישי' }, { d: 5, name: 'שישי' }, { d: 6, name: 'שבת' }
+  ];
+
+  function openAdmin() {
+    document.getElementById('admin-overlay').style.display = 'flex';
+    renderAdminPanel();
+  }
+
+  function closeAdmin() {
+    document.getElementById('admin-overlay').style.display = 'none';
+  }
+
+  function renderAdminPanel() {
+    const list = document.getElementById('admin-days-list');
+    list.innerHTML = '';
+
+    ALL_DAYS.forEach(({ d, name }) => {
+      const isActive = workDays.includes(d);
+      const hours = workHours[d] || workHours.default;
+
+      const row = document.createElement('div');
+      row.className = 'admin-day-row';
+      row.innerHTML = `
+        <div class="day-active-toggle" onclick="adminToggleDay(${d}, this)">
+          <div class="toggle-switch ${isActive ? 'on' : ''}" id="toggle-${d}"></div>
+          <span>${name}</span>
+        </div>
+        <div class="day-hours-inputs ${isActive ? '' : 'disabled'}" id="hours-${d}">
+          <input type="time" id="start-${d}" value="${hours.start}" placeholder="התחלה" />
+          <input type="time" id="end-${d}" value="${hours.end}" placeholder="סיום" />
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    // הפסקת צהריים
+    document.getElementById('admin-lunch-start').value = lunchBreak ? lunchBreak.start : '';
+    document.getElementById('admin-lunch-end').value = lunchBreak ? lunchBreak.end : '';
+  }
+
+  function adminToggleDay(d, el) {
+    const toggle = document.getElementById(`toggle-${d}`);
+    const hoursDiv = document.getElementById(`hours-${d}`);
+    const isNowActive = workDays.includes(d);
+
+    if (isNowActive) {
+      workDays = workDays.filter(x => x !== d);
+      toggle.classList.remove('on');
+      hoursDiv.classList.add('disabled');
+    } else {
+      workDays = [...workDays, d].sort();
+      toggle.classList.add('on');
+      hoursDiv.classList.remove('disabled');
+    }
+  }
+
+  function toggleDay(btn) {} // legacy - לא בשימוש
+
+  function saveAdmin() {
+    // שמור שעות לכל יום
+    ALL_DAYS.forEach(({ d }) => {
+      const startEl = document.getElementById(`start-${d}`);
+      const endEl = document.getElementById(`end-${d}`);
+      if (startEl && endEl && startEl.value && endEl.value) {
+        workHours[d] = { start: startEl.value, end: endEl.value };
+      }
+    });
+
+    // הפסקת צהריים
+    const ls = document.getElementById('admin-lunch-start').value;
+    const le = document.getElementById('admin-lunch-end').value;
+    lunchBreak = (ls && le) ? { start: ls, end: le } : null;
+
+    closeAdmin();
+    selectedDate = null;
+    selectedSlot = null;
+    renderCalendar();
+    document.getElementById('slots-container').innerHTML =
+      '<div class="placeholder-msg"><div class="big">👆</div>בחר תאריך כדי לראות שעות פנויות</div>';
+    document.getElementById('summary-bar').style.display = 'none';
+  }
+
+  // ─── INIT ─────────────────────────────────────────────────────────────────
+  renderCalendar();
+</script>
+</body>
+</html>
