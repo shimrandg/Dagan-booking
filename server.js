@@ -148,7 +148,10 @@ app.post('/book', async (req, res) => {
         dateTime: endDate.toISOString(),
         timeZone: 'Asia/Jerusalem'
       },
-      attendees: [{ email }],
+      attendees: [
+        { email },                              // הלקוח
+        { email: 'shimrandg@gmail.com', organizer: true } // דגן — מקבל התראה
+      ],
       reminders: {
         useDefault: false,
         overrides: [
