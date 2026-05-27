@@ -188,7 +188,145 @@ app.post('/book', async (req, res) => {
   }
 });
 
-// ─── Health check ─────────────────────────────────────────────────────────
+// ─── GET: מצא פגישה לפי אימייל ───────────────────────────────────────────
+// GET /appointment?email=xxx@gmail.com
+app.get('/appointment', async (req, res) => {
+  if (!savedTokens) return res.status(401).json({ error: 'לא מחובר' });
+
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: 'חסר אימייל' });
+
+  try {
+    const now = new Date();
+    const future = new Date();
+    future.setDate(future.getDate() + 21);
+
+    const response = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: now.toISOString(),
+      timeMax: future.toISOString(),
+      q: email,
+      singleEvents: true,
+      orderBy: 'startTime'
+    });
+
+    const events = (response.data.items || []).filter(e =>
+      e.attendees && e.attendees.some(a => a.email === email)
+    );
+
+    if (events.length === 0) {
+      return res.json({ found: false });
+    }
+
+    const event = events[0];
+    const startDate = new Date(event.start.dateTime);
+    const hoursUntil = (startDate - now) / (1000 * 60 * 60);
+
+    const toIsraelTime = (d) => {
+      const s = d.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+      return new Date(s);
+    };
+
+    const israelStart = toIsraelTime(startDate);
+
+    res.json({
+      found: true,
+      eventId: event.id,
+      date: `${israelStart.getFullYear()}-${String(israelStart.getMonth()+1).padStart(2,'0')}-${String(israelStart.getDate()).padStart(2,'0')}`,
+      time: `${String(israelStart.getHours()).padStart(2,'0')}:${String(israelStart.getMinutes()).padStart(2,'0')}`,
+      summary: event.summary,
+      canModify: hoursUntil >= 24
+    });
+
+  } catch (err) {
+    console.error('Find error:', err.message);
+    res.status(500).json({ error: 'שגיאה בחיפוש פגישה' });
+  }
+});
+
+// ─── DELETE: ביטול פגישה ──────────────────────────────────────────────────
+// DELETE /appointment?eventId=xxx&email=xxx
+app.delete('/appointment', async (req, res) => {
+  if (!savedTokens) return res.status(401).json({ error: 'לא מחובר' });
+
+  const { eventId, email } = req.query;
+  if (!eventId || !email) return res.status(400).json({ error: 'חסרים פרטים' });
+
+  try {
+    // בדוק שהפגישה שייכת לאימייל הזה ושיש 24 שעות
+    const event = await calendar.events.get({ calendarId: 'primary', eventId });
+    const startDate = new Date(event.data.start.dateTime);
+    const hoursUntil = (startDate - new Date()) / (1000 * 60 * 60);
+
+    if (hoursUntil < 24) {
+      return res.status(403).json({ error: 'לא ניתן לבטל פחות מ-24 שעות לפני הפגישה' });
+    }
+
+    const isAttendee = event.data.attendees?.some(a => a.email === email);
+    if (!isAttendee) {
+      return res.status(403).json({ error: 'לא נמצאה פגישה עם האימייל הזה' });
+    }
+
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId,
+      sendUpdates: 'all'
+    });
+
+    res.json({ success: true, message: 'הפגישה בוטלה בהצלחה' });
+
+  } catch (err) {
+    console.error('Cancel error:', err.message);
+    res.status(500).json({ error: 'שגיאה בביטול הפגישה' });
+  }
+});
+
+// ─── PUT: שינוי פגישה ────────────────────────────────────────────────────
+// PUT /appointment  { eventId, email, date, time }
+app.put('/appointment', async (req, res) => {
+  if (!savedTokens) return res.status(401).json({ error: 'לא מחובר' });
+
+  const { eventId, email, date, time } = req.body;
+  if (!eventId || !email || !date || !time) {
+    return res.status(400).json({ error: 'חסרים פרטים' });
+  }
+
+  try {
+    const event = await calendar.events.get({ calendarId: 'primary', eventId });
+    const startDate = new Date(event.data.start.dateTime);
+    const hoursUntil = (startDate - new Date()) / (1000 * 60 * 60);
+
+    if (hoursUntil < 24) {
+      return res.status(403).json({ error: 'לא ניתן לשנות פחות מ-24 שעות לפני הפגישה' });
+    }
+
+    const isAttendee = event.data.attendees?.some(a => a.email === email);
+    if (!isAttendee) {
+      return res.status(403).json({ error: 'לא נמצאה פגישה עם האימייל הזה' });
+    }
+
+    const newStart = new Date(`${date}T${time}:00`);
+    const newEnd = new Date(newStart.getTime() + 55 * 60 * 1000);
+
+    await calendar.events.patch({
+      calendarId: 'primary',
+      eventId,
+      requestBody: {
+        start: { dateTime: newStart.toISOString(), timeZone: 'Asia/Jerusalem' },
+        end: { dateTime: newEnd.toISOString(), timeZone: 'Asia/Jerusalem' }
+      },
+      sendUpdates: 'all'
+    });
+
+    res.json({ success: true, message: 'הפגישה עודכנה בהצלחה' });
+
+  } catch (err) {
+    console.error('Reschedule error:', err.message);
+    res.status(500).json({ error: 'שגיאה בשינוי הפגישה' });
+  }
+});
+
+
 app.get('/', (req, res) => {
   res.json({
     status: 'running',
